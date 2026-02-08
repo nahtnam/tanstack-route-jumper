@@ -1,18 +1,18 @@
 {
-  "name": "tanstack-code",
-  "displayName": "TanStack Code",
+  "name": "tanstack-route-jumper",
+  "displayName": "TanStack Route Jumper",
   "description": "Quickly jump to any route source file in TanStack Router / Start projects",
   "version": "0.0.1",
   "license": "MIT",
   "publisher": "nahtnam",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nahtnam/tanstack-code.git"
+    "url": "https://github.com/nahtnam/tanstack-route-jumper.git"
   },
   "bugs": {
-    "url": "https://github.com/nahtnam/tanstack-code/issues"
+    "url": "https://github.com/nahtnam/tanstack-route-jumper/issues"
   },
-  "homepage": "https://github.com/nahtnam/tanstack-code#readme",
+  "homepage": "https://github.com/nahtnam/tanstack-route-jumper#readme",
   "engines": {
     "vscode": "^1.37.0"
   },
@@ -33,13 +33,13 @@
   "contributes": {
     "commands": [
       {
-        "command": "tanstack-code.openRoute",
-        "title": "TanStack: Open Route"
+        "command": "tanstack-route-jumper.openRoute",
+        "title": "TanStack Route Jumper: Open"
       }
     ],
     "keybindings": [
       {
-        "command": "tanstack-code.openRoute",
+        "command": "tanstack-route-jumper.openRoute",
         "key": "ctrl+shift+r",
         "mac": "cmd+shift+r"
       }

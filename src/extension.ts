@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import { parseRouteTree } from './parser';
 
 export function activate(context: vscode.ExtensionContext) {
-  const disposable = vscode.commands.registerCommand('tanstack-code.openRoute', async () => {
+  const disposable = vscode.commands.registerCommand('tanstack-route-jumper.openRoute', async () => {
     const files = await vscode.workspace.findFiles('**/routeTree.gen.ts', '**/node_modules/**', 1);
     if (files.length === 0) {
       vscode.window.showWarningMessage('No routeTree.gen.ts found in this workspace.');
