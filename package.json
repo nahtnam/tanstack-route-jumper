@@ -12,6 +12,7 @@
   "bugs": {
     "url": "https://github.com/nahtnam/tanstack-route-jumper/issues"
   },
+  "icon": "icon.png",
   "homepage": "https://github.com/nahtnam/tanstack-route-jumper#readme",
   "engines": {
     "vscode": "^1.37.0"
