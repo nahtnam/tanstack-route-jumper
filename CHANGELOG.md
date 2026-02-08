@@ -1,9 +1,12 @@
-# Change Log
+# Changelog
 
-All notable changes to the "tanstack-code" extension will be documented in this file.
+All notable changes to the TanStack Code extension will be documented in this file.
 
-Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
+## [0.0.1] - 2026-02-07
 
-## [Unreleased]
+### Added
 
-- Initial release
+- Route Opener command (`TanStack: Open Route`) to jump to route source files
+- Keyboard shortcut: `Cmd+Shift+R` (macOS) / `Ctrl+Shift+R` (Windows/Linux)
+- Automatic activation when workspace contains `routeTree.gen.ts`
+- Support for all route types: static, dynamic params, splat, pathless layouts, nested layouts

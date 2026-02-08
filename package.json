@@ -1,21 +1,47 @@
 {
   "name": "tanstack-code",
   "displayName": "TanStack Code",
-  "description": "An unofficial extension to help speed up development when working with TanStack tools",
+  "description": "Quickly jump to any route source file in TanStack Router / Start projects",
   "version": "0.0.1",
+  "license": "MIT",
+  "publisher": "nahtnam",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nahtnam/tanstack-code.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nahtnam/tanstack-code/issues"
+  },
+  "homepage": "https://github.com/nahtnam/tanstack-code#readme",
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.37.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "keywords": [
+    "tanstack",
+    "tanstack-router",
+    "tanstack-start",
+    "routes",
+    "navigation"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/routeTree.gen.ts"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "tanstack-code.helloWorld",
-        "title": "Hello World"
+        "command": "tanstack-code.openRoute",
+        "title": "TanStack: Open Route"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "tanstack-code.openRoute",
+        "key": "ctrl+shift+r",
+        "mac": "cmd+shift+r"
       }
     ]
   },
@@ -25,15 +51,20 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
-    "test": "vscode-test"
+    "test": "vscode-test",
+    "test:unit": "mocha out/test/parser.test.js"
+  },
+  "dependencies": {
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/vscode": "^1.109.0",
+    "@types/vscode": "^1.37.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "typescript-eslint": "^8.54.0",
     "eslint": "^9.39.2",
     "typescript": "^5.9.3",
+    "mocha": "^11.0.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2"
   }

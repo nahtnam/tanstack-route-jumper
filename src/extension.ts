@@ -1,26 +1,62 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
+import { parseRouteTree } from './parser';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+  const disposable = vscode.commands.registerCommand('tanstack-code.openRoute', async () => {
+    const files = await vscode.workspace.findFiles('**/routeTree.gen.ts', '**/node_modules/**', 1);
+    if (files.length === 0) {
+      vscode.window.showWarningMessage('No routeTree.gen.ts found in this workspace.');
+      return;
+    }
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "tanstack-code" is now active!');
+    const routeTreeUri = files[0];
+    const content = Buffer.from(await vscode.workspace.fs.readFile(routeTreeUri)).toString('utf-8');
+    const routes = parseRouteTree(content);
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('tanstack-code.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from TanStack Code!');
-	});
+    if (routes.length === 0) {
+      vscode.window.showInformationMessage('No routes found in routeTree.gen.ts.');
+      return;
+    }
 
-	context.subscriptions.push(disposable);
+    const items = routes.map(r => ({
+      label: r.routePath,
+      description: r.importPath,
+      importPath: r.importPath,
+    }));
+
+    const selected = await vscode.window.showQuickPick(items, {
+      placeHolder: 'Select a route to open',
+      matchOnDescription: true,
+    });
+
+    if (!selected) {
+      return;
+    }
+
+    const routeTreeDir = path.dirname(routeTreeUri.fsPath);
+    const extensions = ['.tsx', '.ts', '.jsx', '.js'];
+    let resolvedPath: string | undefined;
+
+    for (const ext of extensions) {
+      const candidate = path.resolve(routeTreeDir, selected.importPath + ext);
+      if (fs.existsSync(candidate)) {
+        resolvedPath = candidate;
+        break;
+      }
+    }
+
+    if (!resolvedPath) {
+      vscode.window.showWarningMessage(`Could not find source file for route: ${selected.label}`);
+      return;
+    }
+
+    const doc = await vscode.workspace.openTextDocument(resolvedPath);
+    await vscode.window.showTextDocument(doc);
+  });
+
+  context.subscriptions.push(disposable);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}
