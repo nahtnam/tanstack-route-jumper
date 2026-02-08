@@ -28,7 +28,8 @@
     "navigation"
   ],
   "activationEvents": [
-    "workspaceContains:**/routeTree.gen.ts"
+    "workspaceContains:**/routeTree.gen.ts",
+    "onCommand:tanstack-route-jumper.openRoute"
   ],
   "main": "./out/extension.js",
   "contributes": {
