@@ -2,7 +2,7 @@
   "name": "tanstack-route-jumper",
   "displayName": "TanStack Route Jumper",
   "description": "Quickly jump to any route source file in TanStack Router / Start projects",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "MIT",
   "publisher": "nahtnam",
   "repository": {
