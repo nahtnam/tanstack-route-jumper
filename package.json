@@ -57,7 +57,8 @@
     "test:unit": "mocha out/test/parser.test.js"
   },
   "dependencies": {
-    "typescript": "^5.9.3"
+    "acorn": "^8.14.1",
+    "acorn-typescript": "^1.4.13"
   },
   "devDependencies": {
     "@types/vscode": "^1.37.0",

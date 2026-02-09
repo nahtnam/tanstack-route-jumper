@@ -1,17 +1,29 @@
-import * as ts from 'typescript';
+import * as acorn from 'acorn';
+
+// acorn-typescript's exports field isn't compatible with Node16 moduleResolution
+const tsPlugin = require('acorn-typescript');
 
 export interface RouteEntry {
   routePath: string;
   importPath: string;
 }
 
+const tsParser = acorn.Parser.extend(tsPlugin.default());
+
 export function parseRouteTree(sourceText: string): RouteEntry[] {
-  const sourceFile = ts.createSourceFile(
-    'routeTree.gen.ts',
-    sourceText,
-    ts.ScriptTarget.Latest,
-    true,
-  );
+  // Preprocess generated route tree files to work around acorn's strict scope rules.
+  // TypeScript separates type and value namespaces (so `interface Foo` + `const Foo` is
+  // valid), but acorn treats both as scope bindings and throws on redeclaration.
+  // 1. Strip non-exported interface blocks (we only need `export interface FileRoutesByFullPath`)
+  // 2. Replace const/let with var to allow duplicate variable declarations
+  let preprocessed = sourceText.replace(/^interface\s+\w+[\s\S]*?^\}/gm, '');
+  preprocessed = preprocessed.replace(/^(export\s+)?(const|let)\s/gm, '$1var ');
+
+  const program: any = tsParser.parse(preprocessed, {
+    sourceType: 'module',
+    ecmaVersion: 'latest',
+    locations: true,
+  });
 
   // Step 1: ImportDeclarations → importMap: alias → modulePath
   const importMap = new Map<string, string>();
@@ -25,72 +37,95 @@ export function parseRouteTree(sourceText: string): RouteEntry[] {
   // Step 4: FileRoutesByFullPath interface → routePath → typeName
   const routesByFullPath: Array<{ routePath: string; typeName: string }> = [];
 
-  for (const stmt of sourceFile.statements) {
+  for (let stmt of program.body) {
+    // Unwrap export declarations to get the underlying declaration
+    if (stmt.type === 'ExportNamedDeclaration' && stmt.declaration) {
+      stmt = stmt.declaration;
+    }
+
     // Step 1: Import declarations
-    if (ts.isImportDeclaration(stmt) && stmt.moduleSpecifier && ts.isStringLiteral(stmt.moduleSpecifier)) {
-      const modulePath = stmt.moduleSpecifier.text;
-      const importClause = stmt.importClause;
-      if (importClause?.namedBindings && ts.isNamedImports(importClause.namedBindings)) {
-        for (const element of importClause.namedBindings.elements) {
-          const alias = element.name.text;
+    if (
+      stmt.type === 'ImportDeclaration' &&
+      stmt.source &&
+      typeof stmt.source.value === 'string'
+    ) {
+      const modulePath = stmt.source.value;
+      for (const specifier of stmt.specifiers ?? []) {
+        if (specifier.type === 'ImportSpecifier') {
+          const alias = specifier.local.name;
           importMap.set(alias, modulePath);
         }
       }
     }
 
-    // Step 2 & 3: Variable statements
-    if (ts.isVariableStatement(stmt)) {
-      for (const decl of stmt.declarationList.declarations) {
-        if (!ts.isIdentifier(decl.name) || !decl.initializer) {
+    // Step 2 & 3: Variable declarations
+    if (stmt.type === 'VariableDeclaration') {
+      for (const decl of stmt.declarations) {
+        if (
+          !decl.id ||
+          decl.id.type !== 'Identifier' ||
+          !decl.init
+        ) {
           continue;
         }
-        const varName = decl.name.text;
+        const varName = decl.id.name;
 
-        // Step 2: Check for .update() calls
+        // Check for calls like Foo.update() or Foo._addFileChildren()
         if (
-          ts.isCallExpression(decl.initializer) &&
-          ts.isPropertyAccessExpression(decl.initializer.expression) &&
-          decl.initializer.expression.name.text === 'update' &&
-          ts.isIdentifier(decl.initializer.expression.expression)
+          decl.init.type === 'CallExpression' &&
+          decl.init.callee.type === 'MemberExpression' &&
+          decl.init.callee.property.type === 'Identifier' &&
+          decl.init.callee.object.type === 'Identifier'
         ) {
-          const importAlias = decl.initializer.expression.expression.text;
-          updateMap.set(varName, importAlias);
-        }
+          const methodName = decl.init.callee.property.name;
+          const objectName = decl.init.callee.object.name;
 
-        // Step 3: Check for ._addFileChildren() calls
-        if (
-          ts.isCallExpression(decl.initializer) &&
-          ts.isPropertyAccessExpression(decl.initializer.expression) &&
-          decl.initializer.expression.name.text === '_addFileChildren' &&
-          ts.isIdentifier(decl.initializer.expression.expression)
-        ) {
-          const baseName = decl.initializer.expression.expression.text;
-          childrenMap.set(varName, baseName);
+          // Step 2: .update() calls
+          if (methodName === 'update') {
+            updateMap.set(varName, objectName);
+          }
+
+          // Step 3: ._addFileChildren() calls
+          if (methodName === '_addFileChildren') {
+            childrenMap.set(varName, objectName);
+          }
         }
       }
     }
 
     // Step 4: Interface named FileRoutesByFullPath
     if (
-      ts.isInterfaceDeclaration(stmt) &&
-      stmt.name.text === 'FileRoutesByFullPath'
+      stmt.type === 'TSInterfaceDeclaration' &&
+      stmt.id.name === 'FileRoutesByFullPath'
     ) {
-      for (const member of stmt.members) {
+      for (const member of stmt.body.body) {
         if (
-          ts.isPropertySignature(member) &&
-          member.name &&
-          member.type &&
-          ts.isTypeQueryNode(member.type)
+          member.type === 'TSPropertySignature' &&
+          member.key &&
+          member.typeAnnotation?.typeAnnotation
         ) {
-          // Property: '/path': typeof SomeName
+          const typeAnnotation = member.typeAnnotation.typeAnnotation;
+          if (typeAnnotation.type !== 'TSTypeQuery') {
+            continue;
+          }
+
+          // Property key: '/path'
           let routePath: string;
-          if (ts.isStringLiteral(member.name)) {
-            routePath = member.name.text;
+          if (member.key.type === 'Literal' && typeof member.key.value === 'string') {
+            routePath = member.key.value;
           } else {
             continue;
           }
 
-          const typeName = member.type.exprName.getText(sourceFile);
+          // typeof SomeName → exprName is an Identifier
+          const exprName = typeAnnotation.exprName;
+          let typeName: string;
+          if (exprName.type === 'Identifier') {
+            typeName = exprName.name;
+          } else {
+            continue;
+          }
+
           routesByFullPath.push({ routePath, typeName });
         }
       }
