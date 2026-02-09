@@ -2,6 +2,8 @@
 
 Quickly jump to any route's source file in [TanStack Router](https://tanstack.com/router) / [TanStack Start](https://tanstack.com/start) projects.
 
+![Demo](https://raw.githubusercontent.com/nahtnam/tanstack-route-jumper/main/.github/demo.gif)
+
 Parses your auto-generated `routeTree.gen.ts` and presents every route in a searchable QuickPick. Select a route and jump straight to its source file.
 
 - Resolves all route types: static, dynamic (`$userId`), splat (`$`), pathless layouts (`_with-auth`), and nested layouts

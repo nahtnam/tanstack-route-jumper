@@ -11,3 +11,4 @@ vsc-extension-quickstart.md
 !out/**/*.js
 **/.vscode-test.*
 .env
+.github/**
