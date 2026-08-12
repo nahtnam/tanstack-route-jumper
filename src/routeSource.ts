@@ -34,6 +34,21 @@ function isPathWithin(
   );
 }
 
+function routeSourceCandidates(importPath: string): string[] {
+  const explicitExtension = sourceExtensions.find(extension => importPath.endsWith(extension));
+  const hasEscapedLiteralDot = /\[\.\][^/]*$/.test(importPath);
+
+  if (!explicitExtension || hasEscapedLiteralDot) {
+    return sourceExtensions.map(extension => importPath + extension);
+  }
+
+  const pathWithoutExtension = importPath.slice(0, -explicitExtension.length);
+  return [
+    importPath,
+    ...sourceExtensions.map(extension => pathWithoutExtension + extension),
+  ].filter((candidate, index, candidates) => candidates.indexOf(candidate) === index);
+}
+
 export function canUseNodeFileSystem(
   routeTreeScheme: string,
   workspaceScheme: string,
@@ -73,8 +88,8 @@ export function resolveRouteSourcePath(
 
   const routeTreeDir = pathApi.dirname(routeTreePath);
 
-  for (const extension of sourceExtensions) {
-    const candidatePath = pathApi.resolve(routeTreeDir, importPath + extension);
+  for (const sourceCandidate of routeSourceCandidates(importPath)) {
+    const candidatePath = pathApi.resolve(routeTreeDir, sourceCandidate);
 
     // Reject lexical escapes before touching the candidate path. This also avoids
     // filesystem access to absolute or UNC paths supplied by workspace content.

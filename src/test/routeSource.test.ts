@@ -41,6 +41,57 @@ describe('resolveRouteSourcePath', () => {
     );
   });
 
+  it('resolves addExtensions imports that keep the source extension', () => {
+    const sourcePath = path.join(workspaceRoot, 'src', 'routes', 'index.tsx');
+    const fileSystem = createFileSystem(workspaceRoot, [sourcePath]);
+
+    assert.strictEqual(
+      resolveRouteSourcePath(routeTreePath, workspaceRoot, './routes/index.tsx', fileSystem),
+      sourcePath,
+    );
+  });
+
+  it('maps ESM .js import extensions back to TypeScript source files', () => {
+    const sourcePath = path.join(workspaceRoot, 'src', 'routes', 'index.tsx');
+    const fileSystem = createFileSystem(workspaceRoot, [sourcePath]);
+
+    assert.strictEqual(
+      resolveRouteSourcePath(routeTreePath, workspaceRoot, './routes/index.js', fileSystem),
+      sourcePath,
+    );
+  });
+
+  it('prefers an exact JavaScript source for explicit .js imports', () => {
+    const javascriptPath = path.join(workspaceRoot, 'src', 'routes', 'index.js');
+    const typescriptPath = path.join(workspaceRoot, 'src', 'routes', 'index.tsx');
+    const fileSystem = createFileSystem(workspaceRoot, [javascriptPath, typescriptPath]);
+
+    assert.strictEqual(
+      resolveRouteSourcePath(routeTreePath, workspaceRoot, './routes/index.js', fileSystem),
+      javascriptPath,
+    );
+  });
+
+  it('preserves escaped literal dots in extensionless route imports', () => {
+    const sourcePath = path.join(
+      workspaceRoot,
+      'src',
+      'routes',
+      'customScript[.]js.tsx',
+    );
+    const fileSystem = createFileSystem(workspaceRoot, [sourcePath]);
+
+    assert.strictEqual(
+      resolveRouteSourcePath(
+        routeTreePath,
+        workspaceRoot,
+        './routes/customScript[.]js',
+        fileSystem,
+      ),
+      sourcePath,
+    );
+  });
+
   it('allows parent segments that stay inside the owning workspace', () => {
     const generatedTreePath = path.join(workspaceRoot, 'generated', 'routeTree.gen.ts');
     const sourcePath = path.join(workspaceRoot, 'src', 'routes', 'index.ts');

@@ -233,6 +233,35 @@ const IndexRoute = IndexRouteImport.update({
     assert.deepStrictEqual(result, []);
   });
 
+  it('should parse the generated JavaScript route-tree shape', () => {
+    const source = `
+import { Route as rootRouteImport } from './routes/__root__.tsx'
+import { Route as IndexRouteImport } from './routes/index.js'
+import { Route as PostsRouteImport } from './routes/posts.js'
+import { Route as PostsIndexRouteImport } from './routes/posts/index.tsx'
+import { Route as GroupRouteImport } from './routes/(marketing).js'
+import { Route as GroupSettingsRouteImport } from './routes/(marketing)/settings.js'
+import { Route as PostIdRouteImport } from './routes/posts/$postId.js'
+
+const rootRoute = rootRouteImport.update({ id: '/', getParentRoute: () => rootRouteImport })
+const IndexRoute = IndexRouteImport.update({ id: '/', path: '/', getParentRoute: () => rootRoute })
+  .lazy(() => import('./routes/index.js'))
+const PostsRoute = PostsRouteImport.update({ id: '/posts', path: '/posts', getParentRoute: () => rootRoute })
+const PostsIndexRoute = PostsIndexRouteImport.update({ id: '/', path: '/', getParentRoute: () => PostsRoute })
+const GroupRoute = GroupRouteImport.update({ id: '/(marketing)', getParentRoute: () => rootRoute })
+const GroupSettingsRoute = GroupSettingsRouteImport.update({ id: '/settings', path: '/settings', getParentRoute: () => GroupRoute })
+const PostIdRoute = PostIdRouteImport.update({ id: '/$postId', path: '/$postId', getParentRoute: () => PostsRoute })
+  .update({ component: () => null })
+`;
+    assert.deepStrictEqual(parseRouteTree(source), [
+      { routePath: '/', importPath: './routes/index.js' },
+      { routePath: '/posts', importPath: './routes/posts.js' },
+      { routePath: '/posts/', importPath: './routes/posts/index.tsx' },
+      { routePath: '/posts/$postId', importPath: './routes/posts/$postId.js' },
+      { routePath: '/settings', importPath: './routes/(marketing)/settings.js' },
+    ]);
+  });
+
   it('should handle interface + const same name, declare module, import type, multi-line update, and flat routes', () => {
     const source = `
 /* eslint-disable */
