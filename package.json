@@ -17,6 +17,19 @@
   "engines": {
     "vscode": "^1.74.0"
   },
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Requires Node filesystem access and canonical workspace paths."
+    },
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Generated workspace code is parsed only after the workspace is trusted."
+    }
+  },
   "categories": [
     "Other"
   ],
@@ -29,7 +42,7 @@
   ],
   "activationEvents": [
     "workspaceContains:**/routeTree.gen.ts",
-    "onCommand:tanstack-route-jumper.openRoute"
+    "workspaceContains:**/routeTree.gen.js"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -37,13 +50,6 @@
       {
         "command": "tanstack-route-jumper.openRoute",
         "title": "TanStack Route Jumper: Open"
-      }
-    ],
-    "keybindings": [
-      {
-        "command": "tanstack-route-jumper.openRoute",
-        "key": "ctrl+shift+r",
-        "mac": "cmd+shift+r"
       }
     ]
   },
@@ -54,7 +60,9 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "test:unit": "mocha \"out/test/**/*.test.js\""
+    "test:unit": "mocha \"out/test/**/*.test.js\"",
+    "package:vsix": "vsce package",
+    "check:vsix": "node scripts/check-vsix-contents.mjs"
   },
   "dependencies": {
     "acorn": "^8.14.1",
@@ -69,6 +77,7 @@
     "typescript": "^5.9.3",
     "mocha": "^11.0.0",
     "@vscode/test-cli": "^0.0.12",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "3.9.2"
   }
 }
