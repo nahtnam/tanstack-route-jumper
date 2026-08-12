@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 import { parseRouteTree } from './parser';
+import { canUseNodeFileSystem, resolveRouteSourcePath } from './routeSource';
 
 let log: vscode.LogOutputChannel;
 
@@ -18,6 +17,20 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const routeTreeUri = files[0];
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(routeTreeUri);
+    const isWorkspaceExtensionHost =
+      context.extension.extensionKind === vscode.ExtensionKind.Workspace;
+    if (!workspaceFolder || !canUseNodeFileSystem(
+      routeTreeUri.scheme,
+      workspaceFolder.uri.scheme,
+      vscode.env.remoteName,
+      isWorkspaceExtensionHost,
+    )) {
+      log.warn(`Cannot resolve route sources from workspace URI: ${routeTreeUri.toString()}`);
+      vscode.window.showWarningMessage('Route source files cannot be opened from this workspace.');
+      return;
+    }
+
     log.info(`Found routeTree.gen.ts at ${routeTreeUri.fsPath}`);
     const content = Buffer.from(await vscode.workspace.fs.readFile(routeTreeUri)).toString('utf-8');
     const routes = parseRouteTree(content);
@@ -43,17 +56,11 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const routeTreeDir = path.dirname(routeTreeUri.fsPath);
-    const extensions = ['.tsx', '.ts', '.jsx', '.js'];
-    let resolvedPath: string | undefined;
-
-    for (const ext of extensions) {
-      const candidate = path.resolve(routeTreeDir, selected.importPath + ext);
-      if (fs.existsSync(candidate)) {
-        resolvedPath = candidate;
-        break;
-      }
-    }
+    const resolvedPath = resolveRouteSourcePath(
+      routeTreeUri.fsPath,
+      workspaceFolder.uri.fsPath,
+      selected.importPath,
+    );
 
     if (!resolvedPath) {
       log.warn(`Could not resolve source file for route: ${selected.label} (import: ${selected.importPath})`);
@@ -61,7 +68,14 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const doc = await vscode.workspace.openTextDocument(resolvedPath);
+    const sourceUri = vscode.Uri.file(resolvedPath);
+    const documentUri = routeTreeUri.scheme === 'file'
+      ? sourceUri
+      : sourceUri.with({
+        scheme: routeTreeUri.scheme,
+        authority: routeTreeUri.authority,
+      });
+    const doc = await vscode.workspace.openTextDocument(documentUri);
     await vscode.window.showTextDocument(doc);
   });
 
