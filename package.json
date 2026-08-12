@@ -54,7 +54,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src",
     "test": "vscode-test",
-    "test:unit": "mocha out/test/parser.test.js"
+    "test:unit": "mocha \"out/test/**/*.test.js\""
   },
   "dependencies": {
     "acorn": "^8.14.1",
